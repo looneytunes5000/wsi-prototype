@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Writing Shift Index (WSI) – Prototype App</title>
+<style>
+  :root{--navy:#1F3864;--blue:#2F5597;--ink:#222;--mute:#666;--line:#d9dee7;--bg:#f5f7fb;
+        --notable:#F4B400;--exc:#D9534F;--typ:#7A9CC6;--acad:#2F5597;--conn:#E07B00;--bund:#2E8B57;
+        --focus:#0B63CE}
+  *{box-sizing:border-box}
+  :where(button,a[href],input,select,textarea,[tabindex]):focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+  g.bar{outline:none} g.bar:focus-visible rect{stroke:var(--focus);stroke-width:2}
+  body{margin:0;font-family:Segoe UI,Arial,sans-serif;color:var(--ink);background:var(--bg);font-size:14px}
+  header{background:var(--navy);color:#fff;padding:14px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  header h1{font-size:20px;margin:0;font-weight:600}
+  header .sub{opacity:.8;font-size:12px}
+  nav{display:flex;gap:4px;background:#fff;border-bottom:1px solid var(--line);padding:0 16px;position:sticky;top:0;z-index:5}
+  nav button{border:0;background:none;padding:12px 16px;font-size:14px;cursor:pointer;color:var(--mute);border-bottom:3px solid transparent}
+  nav button.on{color:var(--navy);border-bottom-color:var(--navy);font-weight:600}
+  nav button:disabled{opacity:.55;cursor:default}
+  main{padding:20px 24px;max-width:1400px;margin:0 auto}
+  .caution{background:#FDECEA;border-left:4px solid var(--exc);padding:10px 14px;margin-bottom:16px;font-size:13px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:16px;margin-bottom:16px}
+  .card h2{font-size:16px;margin:0 0 10px;color:var(--navy)}
+  .card h3{font-size:14px;margin:12px 0 6px;color:var(--navy)}
+  .row{display:flex;gap:16px;flex-wrap:wrap}
+  .row>.card{flex:1;min-width:300px}
+  .btn{background:var(--navy);color:#fff;border:0;border-radius:6px;padding:8px 14px;cursor:pointer;font-size:13px}
+  .btn.sec{background:#fff;color:var(--navy);border:1px solid var(--navy)}
+  .btn.big{padding:12px 22px;font-size:15px}
+  .btn:disabled{opacity:.4;cursor:default}
+  .drop{border:2px dashed #9fb0cc;border-radius:8px;padding:26px;text-align:center;color:var(--mute);cursor:pointer;background:#fafbfd}
+  .drop.over{background:#e8eef8;border-color:var(--navy)}
+  textarea,input[type=text],input[type=number]{width:100%;border:1px solid var(--line);border-radius:6px;padding:8px;font:inherit}
+  textarea{min-height:120px;resize:vertical}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  th{background:var(--navy);color:#fff;font-weight:600;padding:7px 8px;text-align:left;position:sticky;top:0}
+  td{border-bottom:1px solid var(--line);padding:6px 8px}
+  td.n{text-align:right;font-variant-numeric:tabular-nums}
+  tr.click{cursor:pointer} tr.click:hover td{background:#eef3fb}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+  .kpi{background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px}
+  .kpi .v{font-size:26px;font-weight:700;color:var(--navy)} .kpi .l{font-size:12px;color:var(--mute)}
+  .badge{display:inline-block;border-radius:10px;padding:2px 9px;font-size:12px;font-weight:600}
+  .b-Typical{background:#E3EAF4;color:#2F4C7A}.b-Notable{background:#FFF0C2;color:#7A5A00}.b-Exceptional{background:#F8D3D1;color:#8B1E1A}.b-Excluded{background:#e9eaee;color:#555}
+  .muted{color:var(--mute);font-size:12px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:900px){.grid2{grid-template-columns:1fr}}
+  .essay{background:#fcfcfd;border:1px solid var(--line);border-radius:6px;padding:12px;line-height:1.75;max-height:520px;overflow:auto;white-space:pre-wrap}
+  .m-a{border-bottom:2px solid var(--acad);color:var(--acad);font-weight:600}
+  .m-c{background:#FFE2C2;border-radius:3px}
+  .m-b{background:#CDEBD8;border-radius:3px}
+  .legend span{margin-right:14px;font-size:12px}
+  .interp{background:#EEF3FB;border-left:4px solid var(--blue);padding:10px 14px;line-height:1.6}
+  .settings td{vertical-align:middle} .settings input{max-width:110px}
+  .hidden{display:none}
+  select{padding:7px;border-radius:6px;border:1px solid var(--line);font:inherit}
+  .heat td.z{text-align:center;font-variant-numeric:tabular-nums;font-weight:600}
+  .chip{display:inline-block;background:#eef1f6;border-radius:4px;padding:1px 6px;margin:1px;font-size:12px}
+  svg text{font-family:Segoe UI,Arial,sans-serif}
+  .toast{position:fixed;bottom:20px;right:20px;background:var(--navy);color:#fff;padding:10px 16px;border-radius:6px;opacity:0;transition:.3s;pointer-events:none}
+  .toast.on{opacity:1}
+  .report{margin-top:12px;border:1px solid var(--line);border-radius:6px;padding:10px 12px;font-size:13px;background:#fafbfd;line-height:1.5}
+  .report .ok{color:#2E6B3E} .report .err{color:#8B1E1A}
+  .report ul{margin:6px 0 0;padding-left:18px} .report li{margin:2px 0}
+  .report code{background:#fff;border:1px solid var(--line);border-radius:3px;padding:0 4px;font-size:12px}
+  .inline-confirm{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;padding:10px 12px;background:#FDECEA;border-radius:6px;font-size:13px}
+  input[aria-invalid="true"]{border-color:var(--exc);background:#FDF3F2}
+  .warn{color:#8B1E1A;font-weight:600}
+  .stulink{color:var(--navy);text-decoration:underline;text-underline-offset:2px}
+.linkbtn{background:none;border:0;padding:0;font:inherit;color:var(--navy);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>Writing Shift Index (WSI)</h1><div class="sub">Prototype v0.2 · in-class (IC) vs take-home (TH) writing · runs entirely in your browser – essays are not uploaded anywhere</div></div>
+</header>
+<nav role="tablist" aria-label="Sections">
+  <button role="tab" id="nav-input" aria-controls="tab-input" aria-selected="true" data-tab="input" class="on" tabindex="0">1 · Data</button>
+  <button role="tab" id="nav-dash" aria-controls="tab-dash" aria-selected="false" data-tab="dash" tabindex="-1" disabled>2 · Dashboard</button>
+  <button role="tab" id="nav-student" aria-controls="tab-student" aria-selected="false" data-tab="student" tabindex="-1" disabled>3 · Student profile</button>
+  <button role="tab" id="nav-settings" aria-controls="tab-settings" aria-selected="false" data-tab="settings" tabindex="-1">4 · Assumptions &amp; settings</button>
+</nav>
+<main>
+<div class="caution"><b>The WSI is descriptive.</b> It is not evidence of AI use or academic misconduct. A high value only means the reasons for a shift may be worth discussing with the student.</div>
+
+<!-- ============ INPUT ============ -->
+<section id="tab-input" role="tabpanel" aria-labelledby="nav-input" tabindex="0">
+  <div class="row">
+    <div class="card">
+      <h2>Add essays from files</h2>
+      <div id="drop" class="drop" role="button" tabindex="0" aria-label="Add essay files. Press Enter to choose .txt files named StudentID_IC.txt and StudentID_TH.txt">Drop <b>.txt</b> files here, or click to choose<br><span class="muted">Name each file <b>StudentID_IC.txt</b> and <b>StudentID_TH.txt</b> (e.g. A023_IC.txt, A023_TH.txt)</span></div>
+      <input id="file" type="file" multiple accept=".txt" class="hidden">
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" id="testRun">▶ One-click test run</button>
+        <button class="btn sec" id="demo">Load demo essays (synthetic)</button>
+        <button class="btn sec" id="loadSession">Open saved session</button>
+        <input id="sessFile" type="file" accept=".json" class="hidden">
+        <button class="btn sec" id="clearAll">Clear all</button>
+      </div>
+      <div id="uploadReport" class="report" role="status" aria-live="polite" hidden></div>
+    </div>
+    <div class="card">
+      <h2>Or paste one student</h2>
+      <input type="text" id="mId" placeholder="Student ID (e.g. A023)">
+      <div class="grid2" style="margin-top:8px">
+        <textarea id="mIC" placeholder="In-class essay (IC)"></textarea>
+        <textarea id="mTH" placeholder="Take-home essay (TH)"></textarea>
+      </div>
+      <button class="btn sec" id="addManual" style="margin-top:8px">Add / replace student</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Essay prompt (optional)</h2>
+    <textarea id="prompt" style="min-height:60px" placeholder="Paste the essay prompt so copied prompt wording is removed before counting (A10)"></textarea>
+  </div>
+  <div class="card">
+    <h2>Loaded students <span id="nLoaded" class="muted"></span></h2>
+    <div style="max-height:340px;overflow:auto"><table id="loadedTbl"></table></div>
+    <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <button class="btn big" id="run" disabled>Calculate WSI ▶</button>
+      <button class="btn sec" id="saveSession" disabled>Save session (.json)</button>
+      <span class="muted">At least 3 eligible students are needed. Cohorts of 40+ give more stable z-scores.</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DASHBOARD ============ -->
+<section id="tab-dash" role="tabpanel" aria-labelledby="nav-dash" tabindex="0" class="hidden">
+  <div class="kpis" id="kpis"></div>
+  <div class="card">
+    <h2>Standardised WSI by student <span class="muted">(sorted; dashed lines = band thresholds; click a bar for the student profile)</span></h2>
+    <div id="barChart"></div>
+  </div>
+  <div class="row">
+    <div class="card">
+      <h2>Cohort change per indicator</h2>
+      <p class="muted" style="margin-top:-4px">Mean IC → mean TH, and the share of students whose value rose.</p>
+      <div id="cohortInd"></div>
+    </div>
+    <div class="card">
+      <h2>What drives the shifts?</h2>
+      <p class="muted" style="margin-top:-4px">Main driver = indicator with the highest z-score for each student.</p>
+      <div id="drivers"></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Indicator profile (z-scores of shift) <span class="muted">· blue = smaller shift than the cohort, red = larger · click a row</span></h2>
+    <div style="max-height:520px;overflow:auto"><table class="heat" id="heat"></table></div>
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn sec" id="csv">Export results (.csv)</button>
+      <button class="btn sec" id="csvRaw">Export raw counts (.csv)</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ STUDENT ============ -->
+<section id="tab-student" role="tabpanel" aria-labelledby="nav-student" tabindex="0" class="hidden">
+  <div class="card" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+    <label><b>Student</b> <select id="stuSel"></select></label>
+    <button class="btn sec" id="prev" aria-label="Previous student">◀</button><button class="btn sec" id="next" aria-label="Next student">▶</button>
+    <span id="stuBadge"></span>
+  </div>
+  <div class="row">
+    <div class="card" style="flex:1.3">
+      <h2>Indicators</h2>
+      <table id="stuTbl"></table>
+      <h3>How to read this</h3>
+      <div class="interp" id="interp"></div>
+    </div>
+    <div class="card"><h2>z-score profile</h2><div id="stuChart"></div></div>
+  </div>
+  <div class="card">
+    <h2>Essays as analysed (after cleaning)</h2>
+    <div class="legend"><span><span class="m-a">academic word</span></span><span><span class="m-c">connector</span></span><span><span class="m-b">lexical bundle</span></span></div>
+    <div class="grid2" style="margin-top:8px">
+      <div><h3 id="icHead">In-class (IC)</h3><div class="essay" id="icText"></div></div>
+      <div><h3 id="thHead">Take-home (TH)</h3><div class="essay" id="thText"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SETTINGS ============ -->
+<section id="tab-settings" role="tabpanel" aria-labelledby="nav-settings" tabindex="0" class="hidden">
+  <div class="row">
+    <div class="card">
+      <h2>Settings</h2>
+      <p class="muted">Weights and thresholds update results instantly. Other settings take effect when you press <b>Recalculate</b>.</p>
+      <table class="settings" id="setTbl"></table>
+      <button class="btn" id="recalc" style="margin-top:10px">Recalculate</button>
+      <button class="btn sec" id="resetSet" style="margin-top:10px">Reset to defaults</button>
+    </div>
+    <div class="card">
+      <h2>Word lists</h2>
+      <table id="listTbl"></table>
+      <p class="muted">Replace a list with your own .txt file (one item per line; lines starting with # are ignored). Connector file: tab-separated <i>category · connector · clause_start_only (0/1)</i>.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn sec" data-list="academic">Upload academic list (e.g. AVL)</button>
+        <button class="btn sec" data-list="bundles">Upload bundle list</button>
+        <button class="btn sec" data-list="connectors">Upload connector list</button>
+        <input id="listFile" type="file" accept=".txt,.tsv" class="hidden">
+      </div>
+    </div>
+  </div>
+  <div class="card"><h2>Stated assumptions</h2><table id="assTbl"></table></div>
+</section>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* =====================================================================
+   Embedded data (generated by build_app.py from the wordlists/ folder)
+   ===================================================================== */
+const DEFAULT_LISTS = {"academic": "# STARTER academic vocabulary list - FOR TESTING THE PIPELINE ONLY (see ASSUMPTIONS.md, A1).\n# Assumption A1 specifies the Academic Vocabulary List (AVL; Gardner & Davies, 2014), core lemmas.\n# The AVL is distributed by its authors (academicwords.info) under their own terms, so it is NOT bundled here.\n# Download it, save one lemma per line as wordlists/academic_vocabulary.txt, and the pipeline will use it automatically.\n# This starter list contains common academic lemmas (largely AWL sublists 1-3, Coxhead 2000, plus frequent derived forms).\n# One lemma per line; inflected forms (-s, -es, -ed, -ing, etc.) are matched automatically.\nanalyse\nanalysis\nanalytical\napproach\narea\nassess\nassessment\nassume\nassumption\nauthority\navailable\nbenefit\nbeneficial\nconcept\nconceptual\nconsist\nconsistent\nconstitute\ncontext\ncontract\ncreate\ncreation\ncreative\ndata\ndefine\ndefinition\nderive\ndistribute\ndistribution\neconomy\neconomic\nenvironment\nenvironmental\nestablish\nestimate\nevident\nevidence\nexport\nfactor\nfinance\nfinancial\nformula\nfunction\nidentify\nidentification\nincome\nindicate\nindication\nindicator\nindividual\ninterpret\ninterpretation\ninvolve\ninvolvement\nissue\nlabour\nlegal\nlegislate\nlegislation\nmajor\nmajority\nmethod\nmethodology\noccur\npercent\npercentage\nperiod\npolicy\nprinciple\nproceed\nprocedure\nprocess\nrequire\nrequirement\nresearch\nrespond\nresponse\nrole\nsection\nsector\nsignificant\nsignificance\nsignificantly\nsimilar\nsimilarity\nsource\nspecific\nspecifically\nstructure\nstructural\ntheory\ntheoretical\nvary\nvariable\nvariation\nvarious\nachieve\nachievement\nacquire\nacquisition\nadministrate\nadministration\naffect\nappropriate\naspect\nassist\nassistance\ncategory\nchapter\ncommission\ncommunity\ncomplex\ncomplexity\ncompute\ncomputer\nconclude\nconclusion\nconduct\nconsequent\nconsequence\nconsequently\nconstruct\nconstruction\nconsume\nconsumption\ncredit\nculture\ncultural\ndesign\ndistinct\ndistinction\nelement\nequate\nevaluate\nevaluation\nfeature\nfinal\nfinally\nfocus\nimpact\ninjure\ninstitute\ninstitution\ninvest\ninvestment\nitem\njournal\nmaintain\nmaintenance\nnormal\nobtain\nparticipate\nparticipant\nparticipation\nperceive\nperception\npositive\npotential\npotentially\nprevious\npreviously\nprimary\npurchase\nrange\nregion\nregional\nregulate\nregulation\nrelevant\nrelevance\nreside\nresource\nrestrict\nrestriction\nsecure\nsecurity\nseek\nselect\nselection\nsite\nstrategy\nstrategic\nsurvey\ntext\ntradition\ntraditional\ntransfer\nalternative\ncircumstance\ncomment\ncompensate\ncomponent\nconsent\nconsiderable\nconsiderably\nconstant\nconstrain\nconstraint\ncontribute\ncontribution\nconvene\ncoordinate\ncore\ncorporate\ncorrespond\ncriteria\ncriterion\ndeduce\ndemonstrate\ndemonstration\ndocument\ndominate\nemphasis\nemphasise\nensure\nexclude\nframework\nfund\nillustrate\nimmigrate\nimply\nimplication\ninitial\ninitially\ninstance\ninteract\ninteraction\njustify\njustification\nlayer\nlink\nlocate\nlocation\nmaximise\nminor\nnegate\nnegative\noutcome\npartner\nphilosophy\nphysical\nproportion\npublish\nreact\nregister\nrely\nreliable\nreliance\nremove\nscheme\nsequence\nsex\nshift\nspecify\nsufficient\nsufficiently\ntask\ntechnical\ntechnique\ntechnology\ntechnological\nvalid\nvalidity\nvolume\naccess\nadequate\nannual\napparent\napparently\napproximate\nattitude\nattribute\ncivil\ncode\ncommit\ncommunicate\ncommunication\nconcentrate\nconfer\ncontrast\ncycle\ndebate\ndespite\ndimension\ndomestic\nemerge\nerror\nethnic\ngoal\ngrant\nhence\nhypothesis\nimplement\nimplementation\nimpose\nintegrate\nintegration\ninternal\ninvestigate\ninvestigation\njob\nlabel\nmechanism\nobvious\nobviously\noccupy\noption\noutput\noverall\nparallel\nparameter\nphase\npredict\nprediction\nprincipal\nprior\nprofessional\nproject\npromote\nregime\nresolve\nretain\nseries\nstatistic\nstatistical\nstatus\nstress\nsubsequent\nsubsequently\nsum\nsummary\nundertake\ncrucial\nenhance\nfacilitate\nfundamental\nfurthermore\nmoreover\nnevertheless\nnotion\nparadigm\nperspective\npredominantly\ncomprehensive\nsubstantial\nsubstantially\nwidespread\nutilise\n", "academic_source": "STARTER list – replace with AVL before the main study", "bundles": "# STARTER academic lexical bundle list (4-word sequences) - see ASSUMPTIONS.md, A4.\n# Compiled for this prototype from frequently reported academic-prose bundles of the kind listed in\n# Biber, Conrad & Cortes (2004) and Hyland (2008). It is a working list, not a reproduction of either source:\n# check it against the original tables before the main study and extend as needed.\n# One 4-word bundle per line, lower case.\non the other hand\nat the same time\nin the case of\nas a result of\non the basis of\nin terms of the\nat the end of\nthe end of the\nin the form of\nthe nature of the\none of the most\nis one of the\nit is important to\nit should be noted\nshould be noted that\nit is possible that\nit is clear that\nit is necessary to\nthe fact that the\ndue to the fact\nto the fact that\nin the context of\nwith respect to the\nwith regard to the\nin relation to the\nas well as the\nthe extent to which\nto the extent that\nthe results of the\nit can be seen\ncan be seen as\ncan be used to\non the one hand\nin the process of\nat the beginning of\nin the absence of\nin the field of\nin the light of\nan important role in\nplays an important role\nplay an important role\na wide range of\na large number of\nthe role of the\nthe importance of the\nin addition to the\nin order to be\nfor the purpose of\nit is worth noting\nis worth noting that\nthere is a need\nthere is no doubt\nit is essential to\nit is evident that\nin the development of\nthe development of the\nthe use of the\nas a means of\nin the sense that\nin the same way\nat the level of\nby the end of\nfrom the point of\nthe point of view\nfrom the perspective of\nin the present study\nthe purpose of this\nthe aim of this\nin other words the\nit is likely that\nare more likely to\nis more likely to\nbe able to use\n", "bundle_source": "STARTER list – verify against Biber et al. (2004) / Hyland (2008)", "connectors": "# Logical connector list (Assumption A2). Format: category<TAB>connector<TAB>clause_start_only (1 = ambiguous item, counted only at the start of a sentence/clause)\n# Adapted from the conjunctive relations in Halliday & Hasan (1976) and the linking adverbials in Biber et al. (1999). Edit freely; keep the list fixed within a study.\nadditive\tin addition\t0\nadditive\tadditionally\t0\nadditive\tmoreover\t0\nadditive\tfurthermore\t0\nadditive\tbesides\t1\nadditive\tlikewise\t0\nadditive\tsimilarly\t0\nadditive\tin the same way\t0\nadditive\twhat is more\t0\nadditive\talso\t1\nadditive\tfor example\t0\nadditive\tfor instance\t0\nadditive\tin particular\t0\nadditive\tspecifically\t1\nadditive\tin other words\t0\nadditive\tthat is\t1\nadditive\tnamely\t0\nadversative\thowever\t0\nadversative\tnevertheless\t0\nadversative\tnonetheless\t0\nadversative\ton the other hand\t0\nadversative\tin contrast\t0\nadversative\tby contrast\t0\nadversative\tconversely\t0\nadversative\ton the contrary\t0\nadversative\talthough\t0\nadversative\teven though\t0\nadversative\tthough\t1\nadversative\twhereas\t0\nadversative\twhile\t1\nadversative\tyet\t1\nadversative\tdespite\t0\nadversative\tin spite of\t0\nadversative\tinstead\t1\nadversative\trather\t1\ncausal\ttherefore\t0\ncausal\tthus\t0\ncausal\thence\t0\ncausal\tconsequently\t0\ncausal\tas a result\t0\ncausal\tas a consequence\t0\ncausal\tbecause of\t0\ncausal\tbecause\t0\ncausal\tdue to\t0\ncausal\taccordingly\t0\ncausal\tfor this reason\t0\ncausal\tsince\t1\ncausal\tso\t1\ncausal\tas\t1\nsequential\tfirst of all\t0\nsequential\tfirstly\t0\nsequential\tsecondly\t0\nsequential\tthirdly\t0\nsequential\tfinally\t0\nsequential\tlastly\t0\nsequential\tsubsequently\t0\nsequential\tmeanwhile\t0\nsequential\tnext\t1\nsequential\tthen\t1\nsequential\tin conclusion\t0\nsequential\tto conclude\t0\nsequential\tin summary\t0\nsequential\tto sum up\t0\nsequential\tto summarise\t0\nsequential\tto summarize\t0\nsequential\tin short\t0\nsequential\toverall\t1\nsequential\tultimately\t0\n"};
+const DEMO = {"prompt": "Should mobile phones be allowed in vocational classrooms? Discuss.", "essays": {"S01": {"IC": "Mobile phones in the classroom\n\nI like the videos because they are short and easy to understand. This is not good because they do not listen to the teacher. I hope teachers and students can agree on this together. This perspective emphasises the responsibility of both teachers and learners. Some of my classmates play games when the teacher is talking.\n\nSome people say phones should be banned in school. So the phone is not always helpful. Maybe the school can make some simple rules. Many students like to use their phone during the lesson. In the kitchen we cannot use phones because our hands are dirty.\n\nIt was fun and we learned a lot of things. My teacher always tells us to put the phone in the bag. But some students did not have enough battery. I also think parents should talk to their children about this. Phones are part of our life now and we cannot stop them.\n\nSo the best way is to use them in a good way. When a message comes I want to read it at once. Teachers also use phones to show videos to us. Everyone needs to be responsible for their own learning. My friend says phones make him lazy and he forgets things.\n\nThen I lose my attention and miss what the teacher said.\n", "TH": "Mobile phones in the classroom\n\nIt was fun and we learned a lot of things. Maybe the school can make some simple rules. I also think parents should talk to their children about this. I agree with him a little bit. I like the videos because they are short and easy to understand.\n\nSome of my classmates play games when the teacher is talking. This is not good because they do not listen to the teacher. Many students like to use their phone during the lesson. Thus, students can obtain information efficiently while maintaining focus on the core task. Some teachers are very strict and take the phone away.\n\nIn the kitchen we cannot use phones because our hands are dirty. It is important to note that vocational tasks often require students to focus on physical procedures. But in theory lessons the phone can help us to check new words. I think the rules should be the same for every class. I do not think this is a good idea.\n\nOther teachers do not care what we do. Then I lose my attention and miss what the teacher said. So the best way is to use them in a good way. Also the wifi in our classroom is very slow sometimes. When I use my phone I can find information very fast.\n\nWhen a message comes I want to read it at once. Although distraction is a genuine concern, it can be reduced through clear procedures. For me the main problem is messages from friends. In my class we did a quiz on the phone and everybody was happy. Some people say phones should be banned in school.\n\nSo the phone is not always helpful. But some students did not have enough battery.\n"}, "S02": {"IC": "Mobile phones in the classroom\n\nSo the best way is to use them in a good way. I think phones are useful in class but sometimes they are a problem. Maybe the school can make some simple rules. I agree with him a little bit. When I use my phone I can find information very fast.\n\nThat is my opinion about phones in the classroom. When a message comes I want to read it at once. It is faster than writing everything down by hand. We will use phones in our future job so we need to learn how to use them well. This way we can still learn and not play too much.\n\nI hope teachers and students can agree on this together. Phones are part of our life now and we cannot stop them. Then I lose my attention and miss what the teacher said. So the phone is not always helpful. Some people say phones should be banned in school.\n\nThis is not good because they do not listen to the teacher. My friend says phones make him lazy and he forgets things. I do not think this is a good idea. Other teachers do not care what we do. But in theory lessons the phone can help us to check new words.\n", "TH": "Mobile phones in the classroom\n\nEveryone needs to be responsible for their own learning. Firstly, institutions should identify the specific tasks in which devices are beneficial. I also think parents should talk to their children about this. My teacher always tells us to put the phone in the bag. It is faster than writing everything down by hand.\n\nMany students like to use their phone during the lesson. So the phone is not always helpful. Similarly, the extent to which phones support learning varies across different contexts. To sum up, the issue requires a balanced and evidence-based response from institutions. We will use phones in our future job so we need to learn how to use them well.\n\nThat is my opinion about phones in the classroom. Teachers also use phones to show videos to us. But in theory lessons the phone can help us to check new words. In the end I think phones can stay but with rules. In the kitchen we cannot use phones because our hands are dirty.\n\nI like the videos because they are short and easy to understand. Moreover, teachers can design structured activities that integrate technology in a meaningful way. If we always look things up we do not remember them. When a message comes I want to read it at once. It is important to note that vocational tasks often require students to focus on physical procedures.\n\nSo the best way is to use them in a good way. Some of my classmates play games when the teacher is talking. Finally, regular evaluation of the policy will indicate whether it achieves its intended goals. I sometimes take photos of the notes on the board. For me the main problem is messages from friends.\n\nThis way we can still learn and not play too much. Other teachers do not care what we do. When I use my phone I can find information very fast.\n"}, "S03": {"IC": "Mobile phones in the classroom\n\nI like the videos because they are short and easy to understand. Many students like to use their phone during the lesson. Then I lose my attention and miss what the teacher said. Some teachers are very strict and take the phone away. It is faster than writing everything down by hand.\n\nIn other words, phones are tools whose value depends on the context in which they are used. Students can use phones only when the teacher says it is ok. Ultimately, the goal is to maximise learning while minimising distraction. I agree with him a little bit. Teachers also use phones to show videos to us.\n\nIn the kitchen we cannot use phones because our hands are dirty. When a message comes I want to read it at once. This way we can still learn and not play too much. But in theory lessons the phone can help us to check new words. On the basis of this analysis, a complete prohibition appears neither practical nor beneficial.\n\nI do not think this is a good idea. Everyone needs to be responsible for their own learning. If we always look things up we do not remember them. In the context of practical training, digital tools can enhance the evaluation of student performance. So the phone is not always helpful.\n\nAlso the wifi in our classroom is very slow sometimes. I also think parents should talk to their children about this. I sometimes take photos of the notes on the board.\n", "TH": "Mobile phones in the classroom\n\nSome of my classmates play games when the teacher is talking. My teacher always tells us to put the phone in the bag. This way we can still learn and not play too much. Overall, the evidence indicates that the impact of phones depends on how they are integrated. Many students like to use their phone during the lesson.\n\nAdditionally, structured use of devices may promote collaboration and participation. We will use phones in our future job so we need to learn how to use them well. I hope teachers and students can agree on this together. But in theory lessons the phone can help us to check new words. This is not good because they do not listen to the teacher.\n\nIt was fun and we learned a lot of things. Then students will know what to do and there is less fighting. This perspective emphasises the responsibility of both teachers and learners. It is clear that a balanced approach is required rather than a complete ban. I like the videos because they are short and easy to understand.\n\nIf we always look things up we do not remember them. To sum up, the issue requires a balanced and evidence-based response from institutions. Everyone needs to be responsible for their own learning. In my class we did a quiz on the phone and everybody was happy. I also think parents should talk to their children about this.\n\nAlso the wifi in our classroom is very slow sometimes. I think phones are useful in class but sometimes they are a problem. In the end I think phones can stay but with rules. So the best way is to use them in a good way. Students can use phones only when the teacher says it is ok.\n\nIt is important to note that vocational tasks often require students to focus on physical procedures. The fact that the workplace relies on digital technology further supports this position. For me the main problem is messages from friends. Phones are part of our life now and we cannot stop them. I agree with him a little bit.\n"}, "S04": {"IC": "Mobile phones in the classroom\n\nSo the best way is to use them in a good way. This way we can still learn and not play too much. Other teachers do not care what we do. Firstly, institutions should identify the specific tasks in which devices are beneficial. When I use my phone I can find information very fast.\n\nPhones are part of our life now and we cannot stop them. Many students like to use their phone during the lesson. It is faster than writing everything down by hand. I hope teachers and students can agree on this together. I sometimes take photos of the notes on the board.\n\nI think the rules should be the same for every class. I do not think this is a good idea. Hence, a clear framework is essential to ensure that technology serves an educational function. It was fun and we learned a lot of things. Then students will know what to do and there is less fighting.\n\nWhen a message comes I want to read it at once. My friend says phones make him lazy and he forgets things. Students can use phones only when the teacher says it is ok. Teachers also use phones to show videos to us. This is not good because they do not listen to the teacher.\n\nMaybe the school can make some simple rules. I agree with him a little bit. If we always look things up we do not remember them. I like the videos because they are short and easy to understand.\n", "TH": "Mobile phones in the classroom\n\nBecause technology plays an important role in preparing students for professional environments, it cannot be ignored. Some teachers are very strict and take the phone away. Also the wifi in our classroom is very slow sometimes. In conclusion, mobile phones should be permitted under a consistent and transparent framework. My friend says phones make him lazy and he forgets things.\n\nIt was fun and we learned a lot of things. So the phone is not always helpful. Furthermore, research suggests that constant notifications affect concentration and reduce the quality of learning. I hope teachers and students can agree on this together. In the kitchen we cannot use phones because our hands are dirty.\n\nSome people say phones should be banned in school. Secondly, teachers should communicate the expected behaviour and the consequences of misuse. In my class we did a quiz on the phone and everybody was happy. As a result of frequent distractions, students may fail to retain key concepts. Teachers also use phones to show videos to us.\n\nMy teacher always tells us to put the phone in the bag. In contrast, an unrestricted approach may undermine the authority of the instructor. Students can use phones only when the teacher says it is ok. It is faster than writing everything down by hand. That is my opinion about phones in the classroom.\n\nIf we always look things up we do not remember them. Some of my classmates play games when the teacher is talking. It is clear that a balanced approach is required rather than a complete ban. A wide range of applications can assist students in acquiring technical knowledge. However, the role of mobile phones in vocational classrooms remains a significant issue for teachers.\n"}, "S05": {"IC": "Mobile phones in the classroom\n\nThen I lose my attention and miss what the teacher said. I like the videos because they are short and easy to understand. I do not think this is a good idea. Teachers also use phones to show videos to us. So the phone is not always helpful.\n\nI sometimes take photos of the notes on the board. When a message comes I want to read it at once. For me the main problem is messages from friends. In the kitchen we cannot use phones because our hands are dirty. In the end I think phones can stay but with rules.\n\nMy teacher always tells us to put the phone in the bag. This is not good because they do not listen to the teacher. That is my opinion about phones in the classroom. It was fun and we learned a lot of things. Phones are part of our life now and we cannot stop them.\n\nBut in theory lessons the phone can help us to check new words. Then students will know what to do and there is less fighting. Many students like to use their phone during the lesson. I agree with him a little bit. I think the rules should be the same for every class.\n\nEveryone needs to be responsible for their own learning.\n", "TH": "Mobile phones in the classroom\n\nSome people say phones should be banned in school. I agree with him a little bit. It is faster than writing everything down by hand. My friend says phones make him lazy and he forgets things. Everyone needs to be responsible for their own learning.\n\nI hope teachers and students can agree on this together. Students can use phones only when the teacher says it is ok. Some of my classmates play games when the teacher is talking. So the phone is not always helpful. When a message comes I want to read it at once.\n\nIn the kitchen we cannot use phones because our hands are dirty. I also think parents should talk to their children about this. I think the rules should be the same for every class. We will use phones in our future job so we need to learn how to use them well. This way we can still learn and not play too much.\n\nTeachers also use phones to show videos to us. Also the wifi in our classroom is very slow sometimes. Maybe the school can make some simple rules. Hence, a clear framework is essential to ensure that technology serves an educational function. When I use my phone I can find information very fast.\n\nIf we always look things up we do not remember them. Then students will know what to do and there is less fighting. For me the main problem is messages from friends. In the end I think phones can stay but with rules. Then I lose my attention and miss what the teacher said.\n\nPhones are part of our life now and we cannot stop them. In my class we did a quiz on the phone and everybody was happy. Other teachers do not care what we do.\n"}, "S06": {"IC": "Mobile phones in the classroom\n\nWhen a message comes I want to read it at once. Other teachers do not care what we do. But in theory lessons the phone can help us to check new words. Then I lose my attention and miss what the teacher said. Some of my classmates play games when the teacher is talking.\n\nMaybe the school can make some simple rules. For me the main problem is messages from friends. Some people say phones should be banned in school. I agree with him a little bit. I sometimes take photos of the notes on the board.\n\nIt was fun and we learned a lot of things. It is faster than writing everything down by hand. I think phones are useful in class but sometimes they are a problem. However, the role of mobile phones in vocational classrooms remains a significant issue for teachers. In the end I think phones can stay but with rules.\n\nSecondly, teachers should communicate the expected behaviour and the consequences of misuse. I think the rules should be the same for every class. Some teachers are very strict and take the phone away. I also think parents should talk to their children about this. So the phone is not always helpful.\n\nSimilarly, the extent to which phones support learning varies across different contexts. My teacher always tells us to put the phone in the bag.\n", "TH": "Mobile phones in the classroom\n\nAs well as the academic dimension, the economic factor of device ownership must be considered. This way we can still learn and not play too much. In the end I think phones can stay but with rules. Also the wifi in our classroom is very slow sometimes. Consequently, the benefits of mobile learning depend on the strategy adopted by the instructor.\n\nAlthough distraction is a genuine concern, it can be reduced through clear procedures. Then students will know what to do and there is less fighting. When a message comes I want to read it at once. I sometimes take photos of the notes on the board. Some teachers are very strict and take the phone away.\n\nFurthermore, research suggests that constant notifications affect concentration and reduce the quality of learning. In addition, phones can facilitate communication between students and instructors outside the classroom. I hope teachers and students can agree on this together. At the same time, students need to develop the professional skills to manage technology responsibly. Teachers also use phones to show videos to us.\n\nIn other words, phones are tools whose value depends on the context in which they are used. In contrast, an unrestricted approach may undermine the authority of the instructor. So the best way is to use them in a good way. In the case of laboratory sessions, safety requirements must take priority over convenience. So the phone is not always helpful.\n\nI think phones are useful in class but sometimes they are a problem. Because technology plays an important role in preparing students for professional environments, it cannot be ignored. I like the videos because they are short and easy to understand. It was fun and we learned a lot of things. I think the rules should be the same for every class.\n\nMy teacher always tells us to put the phone in the bag. The fact that the workplace relies on digital technology further supports this position. That is my opinion about phones in the classroom. This is not good because they do not listen to the teacher.\n"}, "S07": {"IC": "Mobile phones in the classroom\n\nIn my class we did a quiz on the phone and everybody was happy. I think phones are useful in class but sometimes they are a problem. But in theory lessons the phone can help us to check new words. Students can use phones only when the teacher says it is ok. We will use phones in our future job so we need to learn how to use them well.\n\nEveryone needs to be responsible for their own learning. It is faster than writing everything down by hand. Other teachers do not care what we do. If we always look things up we do not remember them. I think the rules should be the same for every class.\n\nAlso the wifi in our classroom is very slow sometimes. Many students like to use their phone during the lesson. For me the main problem is messages from friends. One of the most effective methods is to allocate specific periods for device use. Then I lose my attention and miss what the teacher said.\n\nSo the best way is to use them in a good way. When a message comes I want to read it at once. My friend says phones make him lazy and he forgets things. I hope teachers and students can agree on this together. In the kitchen we cannot use phones because our hands are dirty.\n\nSome people say phones should be banned in school. Then students will know what to do and there is less fighting. Finally, regular evaluation of the policy will indicate whether it achieves its intended goals. So the phone is not always helpful.\n", "TH": "Mobile phones in the classroom\n\nIn the end I think phones can stay but with rules. A wide range of applications can assist students in acquiring technical knowledge. Then I lose my attention and miss what the teacher said. We will use phones in our future job so we need to learn how to use them well. Everyone needs to be responsible for their own learning.\n\nIn other words, phones are tools whose value depends on the context in which they are used. Furthermore, research suggests that constant notifications affect concentration and reduce the quality of learning. I do not think this is a good idea. For me the main problem is messages from friends. On the other hand, mobile devices can provide immediate access to relevant resources.\n\nThat is my opinion about phones in the classroom. Some teachers are very strict and take the phone away. Other teachers do not care what we do. My friend says phones make him lazy and he forgets things. Maybe the school can make some simple rules.\n\nWhen I use my phone I can find information very fast. This way we can still learn and not play too much. My teacher always tells us to put the phone in the bag. This is not good because they do not listen to the teacher. It is faster than writing everything down by hand.\n\nFinally, regular evaluation of the policy will indicate whether it achieves its intended goals. Firstly, institutions should identify the specific tasks in which devices are beneficial. Also the wifi in our classroom is very slow sometimes. I also think parents should talk to their children about this. Teachers also use phones to show videos to us.\n\nI sometimes take photos of the notes on the board. I think the rules should be the same for every class. Therefore, institutions should establish consistent policies that specify when devices may be used. Some people say phones should be banned in school.\n"}, "S08": {"IC": "Mobile phones in the classroom\n\nI like the videos because they are short and easy to understand. My teacher always tells us to put the phone in the bag. This is not good because they do not listen to the teacher. When a message comes I want to read it at once. Then students will know what to do and there is less fighting.\n\nThen I lose my attention and miss what the teacher said. Maybe the school can make some simple rules. I hope teachers and students can agree on this together. Firstly, institutions should identify the specific tasks in which devices are beneficial. In the end I think phones can stay but with rules.\n\nPhones are part of our life now and we cannot stop them. Some people say phones should be banned in school. In my class we did a quiz on the phone and everybody was happy. So the phone is not always helpful. Furthermore, research suggests that constant notifications affect concentration and reduce the quality of learning.\n\nThat is my opinion about phones in the classroom. Everyone needs to be responsible for their own learning. Other teachers do not care what we do. It is faster than writing everything down by hand. Also the wifi in our classroom is very slow sometimes.\n\nThus, students can obtain information efficiently while maintaining focus on the core task. When I use my phone I can find information very fast.\n", "TH": "Mobile phones in the classroom\n\nEveryone needs to be responsible for their own learning. But in theory lessons the phone can help us to check new words. I also think parents should talk to their children about this. On the basis of this analysis, a complete prohibition appears neither practical nor beneficial. In the end I think phones can stay but with rules.\n\nI do not think this is a good idea. That is my opinion about phones in the classroom. Also the wifi in our classroom is very slow sometimes. Teachers also use phones to show videos to us. Maybe the school can make some simple rules.\n\nI sometimes take photos of the notes on the board. I think phones are useful in class but sometimes they are a problem. Firstly, institutions should identify the specific tasks in which devices are beneficial. So the phone is not always helpful. Some people say phones should be banned in school.\n\nSo the best way is to use them in a good way. Other teachers do not care what we do. I like the videos because they are short and easy to understand. In the kitchen we cannot use phones because our hands are dirty. Phones are part of our life now and we cannot stop them.\n\nBut some students did not have enough battery. To sum up, the issue requires a balanced and evidence-based response from institutions. Finally, regular evaluation of the policy will indicate whether it achieves its intended goals. At the same time, students need to develop the professional skills to manage technology responsibly. Because technology plays an important role in preparing students for professional environments, it cannot be ignored.\n\nFurthermore, research suggests that constant notifications affect concentration and reduce the quality of learning. I agree with him a little bit. The fact that the workplace relies on digital technology further supports this position. If we always look things up we do not remember them. Due to the fact that not all students have equal access, alternative resources should be available.\n"}, "S09": {"IC": "Mobile phones in the classroom\n\nI think phones are useful in class but sometimes they are a problem. In terms of the learning outcomes, appropriate use of phones may contribute to deeper understanding. When a message comes I want to read it at once. Also the wifi in our classroom is very slow sometimes. So the phone is not always helpful.\n\nBut in theory lessons the phone can help us to check new words. Additionally, structured use of devices may promote collaboration and participation. In the end I think phones can stay but with rules. It is important to note that vocational tasks often require students to focus on physical procedures. Many students like to use their phone during the lesson.\n\nTeachers also use phones to show videos to us. My teacher always tells us to put the phone in the bag. So the best way is to use them in a good way. It was fun and we learned a lot of things. Therefore, institutions should establish consistent policies that specify when devices may be used.\n\nI sometimes take photos of the notes on the board. I hope teachers and students can agree on this together. Other teachers do not care what we do. In the kitchen we cannot use phones because our hands are dirty. I like the videos because they are short and easy to understand.\n\nMy friend says phones make him lazy and he forgets things. Students can use phones only when the teacher says it is ok.\n", "TH": "Mobile phones in the classroom\n\nPhones are part of our life now and we cannot stop them. Thus, students can obtain information efficiently while maintaining focus on the core task. Furthermore, research suggests that constant notifications affect concentration and reduce the quality of learning. Also the wifi in our classroom is very slow sometimes. So the phone is not always helpful.\n\nIn the end I think phones can stay but with rules. It was fun and we learned a lot of things. Some teachers are very strict and take the phone away. But in theory lessons the phone can help us to check new words. Finally, regular evaluation of the policy will indicate whether it achieves its intended goals.\n\nMaybe the school can make some simple rules. Then students will know what to do and there is less fighting. In conclusion, mobile phones should be permitted under a consistent and transparent framework. My teacher always tells us to put the phone in the bag. When a message comes I want to read it at once.\n\nThat is my opinion about phones in the classroom. Therefore, institutions should establish consistent policies that specify when devices may be used. This is not good because they do not listen to the teacher. Some of my classmates play games when the teacher is talking. But some students did not have enough battery.\n\nFor me the main problem is messages from friends. I hope teachers and students can agree on this together. Firstly, institutions should identify the specific tasks in which devices are beneficial. When I use my phone I can find information very fast. We will use phones in our future job so we need to learn how to use them well.\n\nOn the basis of this analysis, a complete prohibition appears neither practical nor beneficial.\n"}, "S10": {"IC": "Mobile phones in the classroom\n\nI also think parents should talk to their children about this. Also the wifi in our classroom is very slow sometimes. I sometimes take photos of the notes on the board. It is faster than writing everything down by hand. If we always look things up we do not remember them.\n\nTeachers also use phones to show videos to us. I think phones are useful in class but sometimes they are a problem. Phones are part of our life now and we cannot stop them. That is my opinion about phones in the classroom. Everyone needs to be responsible for their own learning.\n\nIn the kitchen we cannot use phones because our hands are dirty. Some of my classmates play games when the teacher is talking. This is not good because they do not listen to the teacher. My friend says phones make him lazy and he forgets things. Then students will know what to do and there is less fighting.\n\nI do not think this is a good idea. I hope teachers and students can agree on this together. Then I lose my attention and miss what the teacher said. When a message comes I want to read it at once. Other teachers do not care what we do.\n\nThis way we can still learn and not play too much. In my class we did a quiz on the phone and everybody was happy.\n", "TH": "Mobile phones in the classroom\n\nEveryone needs to be responsible for their own learning. It was fun and we learned a lot of things. I hope teachers and students can agree on this together. In the context of practical training, digital tools can enhance the evaluation of student performance. It is faster than writing everything down by hand.\n\nThis way we can still learn and not play too much. We will use phones in our future job so we need to learn how to use them well. Whereas some instructors prefer strict rules, others adopt a more flexible approach. I sometimes take photos of the notes on the board. Many students like to use their phone during the lesson.\n\nI also think parents should talk to their children about this. In the end I think phones can stay but with rules. In the kitchen we cannot use phones because our hands are dirty. Although distraction is a genuine concern, it can be reduced through clear procedures. Thus, students can obtain information efficiently while maintaining focus on the core task.\n\nOther teachers do not care what we do. Secondly, teachers should communicate the expected behaviour and the consequences of misuse. When a message comes I want to read it at once. Some people say phones should be banned in school. For me the main problem is messages from friends.\n\nIn my class we did a quiz on the phone and everybody was happy. Teachers also use phones to show videos to us. I do not think this is a good idea. Students can use phones only when the teacher says it is ok. When I use my phone I can find information very fast.\n\nBut in theory lessons the phone can help us to check new words. In contrast, an unrestricted approach may undermine the authority of the instructor. At the same time, students need to develop the professional skills to manage technology responsibly.\n"}, "S11": {"IC": "Mobile phones in the classroom\n\nIt was fun and we learned a lot of things. Everyone needs to be responsible for their own learning. It is faster than writing everything down by hand. Some teachers are very strict and take the phone away. To sum up, the issue requires a balanced and evidence-based response from institutions.\n\nI think phones are useful in class but sometimes they are a problem. But in theory lessons the phone can help us to check new words. In the kitchen we cannot use phones because our hands are dirty. In other words, phones are tools whose value depends on the context in which they are used. At the same time, students need to develop the professional skills to manage technology responsibly.\n\nMy teacher always tells us to put the phone in the bag. I sometimes take photos of the notes on the board. Students can use phones only when the teacher says it is ok. Some of my classmates play games when the teacher is talking. I agree with him a little bit.\n\nOther teachers do not care what we do. I hope teachers and students can agree on this together. I do not think this is a good idea. When a message comes I want to read it at once. Finally, regular evaluation of the policy will indicate whether it achieves its intended goals.\n", "TH": "Mobile phones in the classroom\n\nThat is my opinion about phones in the classroom. Similarly, the extent to which phones support learning varies across different contexts. This perspective emphasises the responsibility of both teachers and learners. So the phone is not always helpful. It is clear that a balanced approach is required rather than a complete ban.\n\nIn the kitchen we cannot use phones because our hands are dirty. Maybe the school can make some simple rules. When a message comes I want to read it at once. Everyone needs to be responsible for their own learning. So the best way is to use them in a good way.\n\nOther teachers do not care what we do. Although distraction is a genuine concern, it can be reduced through clear procedures. It should be noted that individual students respond differently to the same policy. Consequently, the benefits of mobile learning depend on the strategy adopted by the instructor. Then students will know what to do and there is less fighting.\n\nI agree with him a little bit. This is not good because they do not listen to the teacher. For me the main problem is messages from friends. We will use phones in our future job so we need to learn how to use them well. In terms of the learning outcomes, appropriate use of phones may contribute to deeper understanding.\n\nFurthermore, research suggests that constant notifications affect concentration and reduce the quality of learning. Whereas some instructors prefer strict rules, others adopt a more flexible approach. I like the videos because they are short and easy to understand. My friend says phones make him lazy and he forgets things. I hope teachers and students can agree on this together.\n\nIn contrast, an unrestricted approach may undermine the authority of the instructor. However, the role of mobile phones in vocational classrooms remains a significant issue for teachers. When I use my phone I can find information very fast.\n"}, "S12": {"IC": "Mobile phones in the classroom\n\nWe will use phones in our future job so we need to learn how to use them well. But some students did not have enough battery. Accordingly, the policy should be adjusted to the specific features of each learning environment. Some teachers are very strict and take the phone away. Some people say phones should be banned in school.\n\nBut in theory lessons the phone can help us to check new words. When I use my phone I can find information very fast. This way we can still learn and not play too much. I also think parents should talk to their children about this. Maybe the school can make some simple rules.\n\nThen students will know what to do and there is less fighting. So the best way is to use them in a good way. If we always look things up we do not remember them. Teachers also use phones to show videos to us. Many students like to use their phone during the lesson.\n\nIt is faster than writing everything down by hand. I sometimes take photos of the notes on the board. Also the wifi in our classroom is very slow sometimes. I think the rules should be the same for every class. I hope teachers and students can agree on this together.\n\nI like the videos because they are short and easy to understand. Some of my classmates play games when the teacher is talking.\n", "TH": "Mobile phones in the classroom\n\nAccordingly, the policy should be adjusted to the specific features of each learning environment. Some of my classmates play games when the teacher is talking. But some students did not have enough battery. For me the main problem is messages from friends. Due to the fact that not all students have equal access, alternative resources should be available.\n\nAdditionally, structured use of devices may promote collaboration and participation. Also the wifi in our classroom is very slow sometimes. Phones are part of our life now and we cannot stop them. My teacher always tells us to put the phone in the bag. I agree with him a little bit.\n\nIt should be noted that individual students respond differently to the same policy. However, the role of mobile phones in vocational classrooms remains a significant issue for teachers. Everyone needs to be responsible for their own learning. I do not think this is a good idea. Some teachers are very strict and take the phone away.\n\nFirstly, institutions should identify the specific tasks in which devices are beneficial. Nevertheless, there is a need to consider the potential negative impact on social interaction. That is my opinion about phones in the classroom. I also think parents should talk to their children about this. Teachers also use phones to show videos to us.\n\nHence, a clear framework is essential to ensure that technology serves an educational function. In contrast, an unrestricted approach may undermine the authority of the instructor. I think phones are useful in class but sometimes they are a problem. If we always look things up we do not remember them. Other teachers do not care what we do.\n\nIn my class we did a quiz on the phone and everybody was happy.\n"}, "S13": {"IC": "Mobile phones in the classroom\n\nMy friend says phones make him lazy and he forgets things. Also the wifi in our classroom is very slow sometimes. My teacher always tells us to put the phone in the bag. Many students like to use their phone during the lesson. Maybe the school can make some simple rules.\n\nSo the phone is not always helpful. Consequently, the benefits of mobile learning depend on the strategy adopted by the instructor. Everyone needs to be responsible for their own learning. I hope teachers and students can agree on this together. But some students did not have enough battery.\n\nThen students will know what to do and there is less fighting. I think phones are useful in class but sometimes they are a problem. Some teachers are very strict and take the phone away. I like the videos because they are short and easy to understand. If we always look things up we do not remember them.\n\nThat is my opinion about phones in the classroom. I also think parents should talk to their children about this. When a message comes I want to read it at once. In terms of the learning outcomes, appropriate use of phones may contribute to deeper understanding. So the best way is to use them in a good way.\n\nI sometimes take photos of the notes on the board. Other teachers do not care what we do. Nevertheless, there is a need to consider the potential negative impact on social interaction. It is clear that a balanced approach is required rather than a complete ban.\n", "TH": "Mobile phones in the classroom\n\nIn the case of laboratory sessions, safety requirements must take priority over convenience. A wide range of applications can assist students in acquiring technical knowledge. In terms of the learning outcomes, appropriate use of phones may contribute to deeper understanding. It is clear that a balanced approach is required rather than a complete ban. Finally, regular evaluation of the policy will indicate whether it achieves its intended goals.\n\nAlthough distraction is a genuine concern, it can be reduced through clear procedures. Secondly, teachers should communicate the expected behaviour and the consequences of misuse. Firstly, institutions should identify the specific tasks in which devices are beneficial. Due to the fact that not all students have equal access, alternative resources should be available. Whereas some instructors prefer strict rules, others adopt a more flexible approach.\n\nOn the basis of this analysis, a complete prohibition appears neither practical nor beneficial. Furthermore, research suggests that constant notifications affect concentration and reduce the quality of learning. To sum up, the issue requires a balanced and evidence-based response from institutions. On the other hand, mobile devices can provide immediate access to relevant resources. But some students did not have enough battery.\n\nEveryone needs to be responsible for their own learning. In my class we did a quiz on the phone and everybody was happy. Because technology plays an important role in preparing students for professional environments, it cannot be ignored. Consequently, the benefits of mobile learning depend on the strategy adopted by the instructor. Thus, students can obtain information efficiently while maintaining focus on the core task.\n\nSimilarly, the extent to which phones support learning varies across different contexts. As well as the academic dimension, the economic factor of device ownership must be considered. Moreover, teachers can design structured activities that integrate technology in a meaningful way. It is important to note that vocational tasks often require students to focus on physical procedures. Additionally, structured use of devices may promote collaboration and participation.\n\nAt the same time, students need to develop the professional skills to manage technology responsibly. It should be noted that individual students respond differently to the same policy. Therefore, institutions should establish consistent policies that specify when devices may be used.\n"}, "S14": {"IC": "Mobile phones in the classroom\n\nPhones are part of our life now and we cannot stop them. I like the videos because they are short and easy to understand. Furthermore, research suggests that constant notifications affect concentration and reduce the quality of learning. In the kitchen we cannot use phones because our hands are dirty. I think phones are useful in class but sometimes they are a problem.\n\nMy teacher always tells us to put the phone in the bag. When a message comes I want to read it at once. My friend says phones make him lazy and he forgets things. But in theory lessons the phone can help us to check new words. It is faster than writing everything down by hand.\n\nWe will use phones in our future job so we need to learn how to use them well. Some of my classmates play games when the teacher is talking. It was fun and we learned a lot of things. I agree with him a little bit. Everyone needs to be responsible for their own learning.\n\nFor me the main problem is messages from friends. But some students did not have enough battery. Other teachers do not care what we do. Students can use phones only when the teacher says it is ok. In my class we did a quiz on the phone and everybody was happy.\n\nMoreover, teachers can design structured activities that integrate technology in a meaningful way. I do not think this is a good idea. This way we can still learn and not play too much.\n", "TH": "Mobile phones in the classroom\n\nTo sum up, the issue requires a balanced and evidence-based response from institutions. Additionally, structured use of devices may promote collaboration and participation. In other words, phones are tools whose value depends on the context in which they are used. Finally, regular evaluation of the policy will indicate whether it achieves its intended goals. On the other hand, mobile devices can provide immediate access to relevant resources.\n\nWe will use phones in our future job so we need to learn how to use them well. Moreover, teachers can design structured activities that integrate technology in a meaningful way. In the case of laboratory sessions, safety requirements must take priority over convenience. Although distraction is a genuine concern, it can be reduced through clear procedures. In contrast, an unrestricted approach may undermine the authority of the instructor.\n\nA wide range of applications can assist students in acquiring technical knowledge. Nevertheless, there is a need to consider the potential negative impact on social interaction. As well as the academic dimension, the economic factor of device ownership must be considered. At the same time, students need to develop the professional skills to manage technology responsibly. Furthermore, research suggests that constant notifications affect concentration and reduce the quality of learning.\n\nTherefore, institutions should establish consistent policies that specify when devices may be used. One of the most effective methods is to allocate specific periods for device use. Accordingly, the policy should be adjusted to the specific features of each learning environment. However, the role of mobile phones in vocational classrooms remains a significant issue for teachers. Due to the fact that not all students have equal access, alternative resources should be available.\n\nThis perspective emphasises the responsibility of both teachers and learners. On the basis of this analysis, a complete prohibition appears neither practical nor beneficial. Consequently, the benefits of mobile learning depend on the strategy adopted by the instructor. It is clear that a balanced approach is required rather than a complete ban.\n"}, "S15": {"IC": "Mobile phones in the classroom\n\nI like the videos because they are short and easy to understand. My friend says phones make him lazy and he forgets things. I hope teachers and students can agree on this together. Some people say phones should be banned in school. I think phones are useful in class but sometimes they are a problem.\n\nThis way we can still learn and not play too much. I agree with him a little bit. I do not think this is a good idea.\n", "TH": "Mobile phones in the classroom\n\nNevertheless, there is a need to consider the potential negative impact on social interaction. In contrast, an unrestricted approach may undermine the authority of the instructor. This way we can still learn and not play too much. For me the main problem is messages from friends. I think phones are useful in class but sometimes they are a problem.\n\nSome teachers are very strict and take the phone away. In the kitchen we cannot use phones because our hands are dirty. As a result of frequent distractions, students may fail to retain key concepts. Maybe the school can make some simple rules. In terms of the learning outcomes, appropriate use of phones may contribute to deeper understanding.\n\nUltimately, the goal is to maximise learning while minimising distraction. But in theory lessons the phone can help us to check new words. My teacher always tells us to put the phone in the bag. Also the wifi in our classroom is very slow sometimes. One of the most effective methods is to allocate specific periods for device use.\n\nOn the basis of this analysis, a complete prohibition appears neither practical nor beneficial. That is my opinion about phones in the classroom. I agree with him a little bit. I hope teachers and students can agree on this together. I think the rules should be the same for every class.\n\nPhones are part of our life now and we cannot stop them. Students can use phones only when the teacher says it is ok. I sometimes take photos of the notes on the board. But some students did not have enough battery. Then students will know what to do and there is less fighting.\n\nFinally, regular evaluation of the policy will indicate whether it achieves its intended goals.\n"}}};
+const ASSUMPTIONS = [["A1", "Academic word list", "Academic Vocabulary List (AVL), Gardner & Davies (2014), core lemmas; tokens matched on lemmas (inflections stripped).", "Larger, more recent corpus than the AWL and not tied to a fixed general-word list.", "Yes - rerun with AWL (Coxhead, 2000)"], ["A2", "Connector list", "Fixed list of 68 single- and multi-word connectors in 4 groups (additive, adversative, causal, sequential), adapted from Halliday & Hasan (1976) and Biber et al. (1999). Ambiguous items (e.g. so, since, as, then, while) count only at the start of a sentence/clause. Longest match wins.", "Transparent and replicable LCD.", "No - fixed for pilot"], ["A3", "Lexical diversity", "MATTR with a 50-word window is the primary LD measure; raw TTR is also reported (named in the abstract).", "Raw TTR falls as texts get longer; take-home essays are usually longer.", "Yes - TTR vs MATTR"], ["A4", "Lexical bundles", "List of academic 4-word bundles of the kind reported by Biber et al. (2004) and Hyland (2008), matched as 4-grams within a clause.", "Stable for small cohorts; corpus-derived bundles from 40-60 essays are noisy and prompt-dependent.", "Yes - corpus-derived 4-grams (>=3 occurrences, >=3 texts)"], ["A5", "Normalisation", "AVD, LCD and LBD expressed per 1,000 words. Texts under 200 words are excluded.", "Removes length effects; very short texts give unstable densities.", "No"], ["A6", "Standardisation", "Cohort z-scores of each shift score G (sample SD). A robust z (median / 1.4826 x MAD) is also reported.", "Simple to explain; the robust version guards against outliers in small cohorts.", "Yes - compare rankings"], ["A7", "Weighting", "Equal weights (0.25 each) for AVD, LD, LCD, LBD.", "No empirical basis yet for unequal weights.", "Yes - PCA-derived weights"], ["A8", "Direction", "Signed WSI: positive = shift towards denser, more formulaic academic writing. Per-indicator z-scores are kept so large shifts in either direction remain visible.", "Previous research indicates a direction (e.g. connectors and bundles tend to rise).", "No"], ["A9", "Flag thresholds", "Bands applied to the standardised WSI (WSI_z): Notable >= +1.5, Exceptional >= +2.0.", "Common conventions; provisional, not validated. A band is a prompt for a conversation, never evidence of AI use or misconduct.", "Reviewed against teacher ratings"], ["A10", "Text cleaning", "Remove title line, quotations in double quotation marks, references section and any verbatim prompt text; student spelling left uncorrected.", "Prevents copied wording from inflating the indicators.", "No"], ["A11", "No double counting", "A word that is part of a matched connector (e.g. furthermore, finally, 'sum' in 'to sum up') counts towards LCD only, not AVD.", "Keeps AVD and LCD separate so connector-heavy writing is not counted twice.", "No"]];
+const DEFAULTS = {perN:1000, wAVD:.25, wLD:.25, wLCD:.25, wLBD:.25, notable:1.5, exceptional:2.0, mattrWin:50, minWords:200};
+const IND = ["AVD","LD","LCD","LBD"];
+const IND_NAME = {AVD:"Academic Vocabulary Density",LD:"Lexical Diversity (MATTR)",LCD:"Logical Connector Density",LBD:"Lexical Bundle Density"};
+
+let S = Object.assign({}, DEFAULTS);
+let LISTS = null;            // prepared lists
+let listSrc = {academic:DEFAULT_LISTS.academic_source, bundles:DEFAULT_LISTS.bundle_source, connectors:"Bundled list (68 connectors, 4 groups)"};
+let rawLists = {academic:DEFAULT_LISTS.academic, bundles:DEFAULT_LISTS.bundles, connectors:DEFAULT_LISTS.connectors};
+let essays = {};             // id -> {IC: text, TH: text}
+let results = null;          // computed
+
+/* ============================ text processing ============================ */
+const WORD_RE = /[A-Za-z]+(?:['\u2019\-][A-Za-z]+)*/g;
+const BOUND = new Set([".","!","?",";",":",",","\u2014"]);
+const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+
+function cleanText(raw, prompt){
+  let t = raw.replace(/\r\n/g,"\n").trim();
+  const m = t.match(/^\s*(references|reference list|bibliography|works cited)\s*:?\s*$/im);
+  if (m) t = t.slice(0, m.index);
+  const lines = t.split("\n"); const first = lines[0].trim();
+  if (first && first.split(/\s+/).length <= 12 && !/[.!?]$/.test(first) && lines.length > 1) t = lines.slice(1).join("\n");
+  t = t.replace(/["\u201c][^"\u201d]{0,600}["\u201d]/g," ");
+  if (prompt && prompt.trim()){
+    const pieces = [prompt.trim(), ...prompt.split(/(?<=[.!?])\s+/).map(s=>s.trim()).filter(s=>s.split(/\s+/).length>=5)];
+    [...new Set(pieces)].sort((a,b)=>b.length-a.length).forEach(p=>{ if(p) t = t.replace(new RegExp(esc(p),"gi")," "); });
+  }
+  return t.trim();
+}
+function tokenise(text){
+  const out=[]; let boundary=true, pos=0, m; WORD_RE.lastIndex=0;
+  while((m=WORD_RE.exec(text))){
+    const between=text.slice(pos,m.index);
+    if ([...between].some(c=>BOUND.has(c)) || between.includes("\n")) boundary=true;
+    out.push({w:m[0].toLowerCase().replace(/\u2019/g,"'"), cs:boundary, s:m.index, e:m.index+m[0].length});
+    boundary=false; pos=m.index+m[0].length;
+  }
+  return out;
+}
+function norm(w){return w.toLowerCase().trim().replace(/yze/g,"yse").replace(/ize/g,"ise");}
+function candidates(word){
+  const w = word.toLowerCase().replace(/yze/g,"yse").replace(/ize/g,"ise").replace(/yzi/g,"ysi").replace(/izi/g,"isi");
+  const c = new Set([w]); const n=w.length;
+  if (w.endsWith("ies") && n>4) c.add(w.slice(0,-3)+"y");
+  if (w.endsWith("es") && n>3) c.add(w.slice(0,-2));
+  if (w.endsWith("s") && !w.endsWith("ss") && n>3) c.add(w.slice(0,-1));
+  if (w.endsWith("ied") && n>4) c.add(w.slice(0,-3)+"y");
+  if (w.endsWith("ed") && n>4){ const st=w.slice(0,-2); c.add(st); c.add(w.slice(0,-1)); if(st.length>2&&st.at(-1)===st.at(-2)) c.add(st.slice(0,-1)); }
+  if (w.endsWith("ing") && n>5){ const st=w.slice(0,-3); c.add(st); c.add(st+"e"); if(st.length>2&&st.at(-1)===st.at(-2)) c.add(st.slice(0,-1)); }
+  return [...c];
+}
+function lines(txt){return txt.split(/\r?\n/).map(s=>s.trim()).filter(s=>s && !s.startsWith("#"));}
+function prepareLists(){
+  const academic = new Set(lines(rawLists.academic).map(l=>norm(l.split(/\s+/)[0])));
+  const connectors = lines(rawLists.connectors).map(l=>{const [cat,ph,amb]=l.split("\t"); return {cat, ph:ph.toLowerCase().split(/\s+/), amb:(amb||"").trim()==="1"};})
+                     .sort((a,b)=>b.ph.length-a.ph.length);
+  const bundles = new Set(lines(rawLists.bundles).map(l=>l.toLowerCase().split(/\s+/)).filter(a=>a.length===4).map(a=>a.join(" ")));
+  LISTS = {academic, connectors, bundles};
+}
+function ttr(ws){return ws.length? new Set(ws).size/ws.length : 0;}
+function mattr(ws, win){
+  const n=ws.length; if(!n) return 0; if(n<win) return ttr(ws);
+  const cnt=new Map(); ws.slice(0,win).forEach(w=>cnt.set(w,(cnt.get(w)||0)+1));
+  let total=cnt.size/win;
+  for(let i=win;i<n;i++){ const o=ws[i-win], x=ws[i];
+    const v=cnt.get(o)-1; if(v===0) cnt.delete(o); else cnt.set(o,v);
+    cnt.set(x,(cnt.get(x)||0)+1); total+=cnt.size/win; }
+  return total/(n-win+1);
+}
+function bump(m,k){m[k]=(m[k]||0)+1;}
+function topN(m,k=8){return Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,k);}
+function profile(text){
+  const toks = tokenise(text), ws = toks.map(t=>t.w);
+  const mark = toks.map(()=>({a:false,c:false,b:false}));
+  // connectors (greedy longest match; ambiguous only at clause start)
+  let i=0, nC=0; const cItems={}, cCats={}, used=new Set();
+  while(i<ws.length){
+    let hit=false;
+    for(const c of LISTS.connectors){ const L=c.ph.length;
+      if(i+L<=ws.length && c.ph.every((p,j)=>ws[i+j]===p) && (!c.amb || toks[i].cs)){
+        nC++; bump(cItems,c.ph.join(" ")); bump(cCats,c.cat);
+        for(let j=i;j<i+L;j++){used.add(j); mark[j].c=true;}
+        i+=L; hit=true; break; } }
+    if(!hit) i++;
+  }
+  // academic (A11: skip connector tokens)
+  let nA=0; const aItems={};
+  toks.forEach((t,k)=>{ if(used.has(k)) return;
+    for(const c of candidates(t.w)) if(LISTS.academic.has(c)){ nA++; bump(aItems,c); mark[k].a=true; break; } });
+  // bundles (4-grams, non-overlapping, not crossing a clause boundary)
+  let nB=0; const bItems={};
+  for(let k=0;k+4<=ws.length;){
+    if(toks[k+1].cs||toks[k+2].cs||toks[k+3].cs){ k++; continue; }
+    const g=ws.slice(k,k+4).join(" ");
+    if(LISTS.bundles.has(g)){ nB++; bump(bItems,g); for(let j=k;j<k+4;j++) mark[j].b=true; k+=4; }
+    else k++;
+  }
+  return {text, toks, mark, words:ws.length, acad:nA, conn:nC, bund:nB, ttr:ttr(ws), mattr:mattr(ws,S.mattrWin),
+          aItems, cItems, cCats, bItems};
+}
+
+/* ================================ scoring ================================ */
+const mean=a=>a.reduce((x,y)=>x+y,0)/a.length;
+const sd=a=>{const m=mean(a); return Math.sqrt(a.reduce((s,x)=>s+(x-m)**2,0)/(a.length-1));};
+const median=a=>{const s=[...a].sort((x,y)=>x-y), n=s.length; return n%2? s[(n-1)/2] : (s[n/2-1]+s[n/2])/2;};
+const zs=a=>{const m=mean(a), s=sd(a); return a.map(x=> s? (x-m)/s : 0);};
+const rzs=a=>{const md=median(a), mad=median(a.map(x=>Math.abs(x-md))), sc=1.4826*mad; return a.map(x=> sc? (x-md)/sc : 0);};
+const val=(p,X)=>({AVD:p.acad/p.words*S.perN, LD:p.mattr, LCD:p.conn/p.words*S.perN, LBD:p.bund/p.words*S.perN})[X];
+
+function process(){
+  prepareLists();
+  const prompt = document.getElementById("prompt").value;
+  const rows=[];
+  for(const id of Object.keys(essays).sort()){
+    const e=essays[id], r={id, prof:{}, eligible:false, note:""};
+    for(const c of ["IC","TH"]) if(e[c]!=null) r.prof[c]=profile(cleanText(e[c],prompt));
+    if(!r.prof.IC||!r.prof.TH) r.note="Missing "+(!r.prof.IC?"IC":"TH")+" text";
+    else { const short=["IC","TH"].filter(c=>r.prof[c].words<S.minWords);
+      if(short.length) r.note=short.join("/")+` under ${S.minWords} words – excluded (A5)`; else r.eligible=true; }
+    rows.push(r);
+  }
+  const el=rows.filter(r=>r.eligible);
+  if(el.length<3){ toast("At least 3 eligible students are needed."); return false; }
+  for(const X of IND){ const G=el.map(r=>val(r.prof.TH,X)-val(r.prof.IC,X));
+    el.forEach((r,i)=>{r["G_"+X]=G[i];}); }
+  el.forEach(r=>r.G_TTR=r.prof.TH.ttr-r.prof.IC.ttr);
+  results={rows, el};
+  rescore();
+  return true;
+}
+function rescore(){
+  const el=results.el, w={AVD:S.wAVD,LD:S.wLD,LCD:S.wLCD,LBD:S.wLBD}, ws=IND.reduce((s,X)=>s+w[X],0);
+  for(const X of IND){ const G=el.map(r=>r["G_"+X]), z=zs(G), rz=rzs(G);
+    el.forEach((r,i)=>{r["z_"+X]=z[i]; r["rz_"+X]=rz[i];}); }
+  el.forEach(r=>{ r.WSI=IND.reduce((s,X)=>s+w[X]*r["z_"+X],0)/ws; r.WSIr=IND.reduce((s,X)=>s+w[X]*r["rz_"+X],0)/ws;
+    r.driver=IND.reduce((b,X)=> r["z_"+X]>r["z_"+b]?X:b, "AVD"); });
+  const wz=zs(el.map(r=>r.WSI));
+  el.forEach((r,i)=>{ r.WSIz=wz[i]; r.band= wz[i]>=S.exceptional?"Exceptional": wz[i]>=S.notable?"Notable":"Typical"; });
+  const ord=[...el].sort((a,b)=>b.WSIz-a.WSIz); ord.forEach((r,i)=>r.rank=i+1);
+}
+
+/* ================================== UI =================================== */
+const $=id=>document.getElementById(id);
+const h=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const f2=x=> (x==null||isNaN(x))?"–":(Math.abs(x)<0.005?0:x).toFixed(2);
+const f3=x=> (x==null||isNaN(x))?"–":x.toFixed(3);
+function toast(m){const t=$("toast"); t.textContent=m; t.classList.add("on"); setTimeout(()=>t.classList.remove("on"),2600);}
+function tab(name){
+  document.querySelectorAll("nav [role=tab]").forEach(b=>{
+    const on=b.dataset.tab===name;
+    b.classList.toggle("on",on);
+    b.setAttribute("aria-selected",on?"true":"false");
+    b.tabIndex=on?0:-1;
+  });
+  ["input","dash","student","settings"].forEach(t=>$("tab-"+t).classList.toggle("hidden",t!==name));
+  window.scrollTo(0,0);
+}
+document.querySelectorAll("nav [role=tab]").forEach(b=>b.onclick=()=>tab(b.dataset.tab));
+document.querySelector("nav[role=tablist]").addEventListener("keydown",e=>{
+  if(!["ArrowRight","ArrowLeft","Home","End"].includes(e.key)) return;
+  const tabs=[...document.querySelectorAll("nav [role=tab]:not(:disabled)")];
+  const i=tabs.indexOf(document.activeElement); if(i<0) return;
+  e.preventDefault();
+  const n=e.key==="Home"?0:e.key==="End"?tabs.length-1:
+          (i+(e.key==="ArrowRight"?1:-1)+tabs.length)%tabs.length;
+  tabs[n].focus(); tab(tabs[n].dataset.tab);
+});
+
+function wc(t){return (t.match(WORD_RE)||[]).length;}
+function renderLoaded(){
+  const ids=Object.keys(essays).sort();
+  const prompt=document.getElementById("prompt").value;
+  $("nLoaded").textContent = ids.length? `(${ids.length})` : "";
+  $("run").disabled = ids.length<3; $("saveSession").disabled = !ids.length;
+  if(!ids.length){ $("loadedTbl").innerHTML="<tr><td class='muted'>No essays loaded yet.</td></tr>"; return; }
+  $("loadedTbl").innerHTML = "<tr><th>Student</th><th>IC words<br><span style='font-weight:400;opacity:.85'>analysed / raw</span></th><th>TH words<br><span style='font-weight:400;opacity:.85'>analysed / raw</span></th><th>Status</th><th></th></tr>" +
+    ids.map(id=>{ const e=essays[id]; const ic=e.IC!=null?wc(e.IC):null, th=e.TH!=null?wc(e.TH):null;
+      const icS=e.IC!=null?tokenise(cleanText(e.IC,prompt)).length:null, thS=e.TH!=null?tokenise(cleanText(e.TH,prompt)).length:null;
+      let st = (ic==null||th==null)? `<span class="badge b-Excluded">missing ${ic==null?"IC":"TH"}</span>` :
+               (icS<S.minWords||thS<S.minWords)? `<span class="badge b-Excluded">too short (min ${S.minWords})</span>` : "✓ ready";
+      return `<tr><td>${h(id)}</td><td class="n">${icS??"–"} <span class="muted">/ ${ic??"–"}</span></td><td class="n">${thS??"–"} <span class="muted">/ ${th??"–"}</span></td><td>${st}</td><td><a href="#" data-del="${h(id)}">remove</a></td></tr>`;}).join("");
+  document.querySelectorAll("[data-del]").forEach(a=>a.onclick=ev=>{ev.preventDefault(); delete essays[a.dataset.del]; renderLoaded();});
+}
+async function addFiles(files){
+  let n=0, bad=[];
+  for(const f of files){
+    const m=f.name.match(/^(.+)_(IC|TH)\.txt$/i);
+    if(!m){bad.push(f.name); continue;}
+    const id=m[1], c=m[2].toUpperCase(); (essays[id] ||= {})[c]=await f.text(); n++;
+  }
+  renderLoaded();
+  const rep=$("uploadReport");
+  if(!bad.length){ rep.hidden=true; rep.innerHTML=""; }
+  else{
+    rep.hidden=false;
+    rep.innerHTML=`<b>${n} file(s) added · ${bad.length} skipped</b>`+
+      `<ul>${bad.map(x=>`<li><code>${h(x)}</code> — file name must end <code>_IC.txt</code> or <code>_TH.txt</code></li>`).join("")}</ul>`;
+  }
+  toast(`${n} file(s) added`+(bad.length?` · ${bad.length} skipped`:""));
+}
+const drop=$("drop");
+drop.onclick=()=>$("file").click();
+drop.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); $("file").click(); } });
+$("file").onchange=e=>{addFiles([...e.target.files]); e.target.value="";};
+["dragenter","dragover"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault(); drop.classList.add("over");}));
+["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault(); drop.classList.remove("over");}));
+drop.addEventListener("drop",e=>addFiles([...e.dataTransfer.files]));
+$("demo").onclick=()=>{ essays=JSON.parse(JSON.stringify(DEMO.essays)); $("prompt").value=DEMO.prompt; renderLoaded(); toast("Demo essays loaded (synthetic – for testing only)"); };
+$("testRun").onclick=()=>{
+  essays=JSON.parse(JSON.stringify(DEMO.essays)); $("prompt").value=DEMO.prompt; renderLoaded();
+  if(!process()) return;
+  document.querySelectorAll("nav button").forEach(b=>b.disabled=false);
+  renderAll(); tab("dash");
+  toast("Test data loaded (synthetic) — full dashboard shown");
+};
+$("clearAll").onclick=()=>{ if(confirm("Remove all loaded essays?")){ essays={}; results=null; renderLoaded(); ["dash","student"].forEach(t=>document.querySelector(`[data-tab=${t}]`).disabled=true);} };
+$("addManual").onclick=()=>{
+  const id=$("mId").value.trim().replace(/\s+/g,"_"), ic=$("mIC").value, th=$("mTH").value;
+  if(!id){toast("Enter a student ID"); return;}
+  if(!ic.trim()&&!th.trim()){toast("Paste at least one essay"); return;}
+  essays[id] ||= {}; if(ic.trim()) essays[id].IC=ic; if(th.trim()) essays[id].TH=th;
+  $("mId").value=$("mIC").value=$("mTH").value=""; renderLoaded(); toast(`${id} added`);
+};
+$("saveSession").onclick=()=>download("WSI_session.json", JSON.stringify({version:2, prompt:$("prompt").value, settings:S, essays},null,1), "application/json");
+$("loadSession").onclick=()=>$("sessFile").click();
+$("sessFile").onchange=async e=>{ try{ const d=JSON.parse(await e.target.files[0].text()); essays=d.essays||{}; $("prompt").value=d.prompt||""; if(d.settings) S=Object.assign({},DEFAULTS,d.settings); renderSettings(); renderLoaded(); toast("Session opened"); }catch(err){toast("Could not read that file");} e.target.value=""; };
+$("run").onclick=()=>{ if(process()){ document.querySelectorAll("nav button").forEach(b=>b.disabled=false); renderAll(); tab("dash"); } };
+
+function renderAll(){ renderDash(); renderStudentSel(); renderStudent(); }
+
+/* ---------- dashboard ---------- */
+function renderDash(){
+  const {rows, el}=results;
+  const cnt=b=>el.filter(r=>r.band===b).length;
+  const exc=rows.filter(r=>!r.eligible);
+  const k=[["Students scored",el.length],["Excluded",exc.length],["Notable",cnt("Notable")],["Exceptional",cnt("Exceptional")],
+           ["Mean words IC → TH", Math.round(mean(el.map(r=>r.prof.IC.words)))+" → "+Math.round(mean(el.map(r=>r.prof.TH.words)))]];
+  $("kpis").innerHTML=k.map(([l,v],i)=>`<div class="kpi"><div class="v" style="${i==3&&v?'color:var(--exc)':i==2&&v?'color:#B8860B':''}">${v}</div><div class="l">${l}</div></div>`).join("")
+    + (exc.length? `<div class="kpi" style="grid-column:1/-1"><div class="l">Excluded: ${exc.map(r=>r.id+" ("+r.note+")").join("; ")}</div></div>`:"");
+  barChart();
+  // cohort change
+  $("cohortInd").innerHTML="<table><tr><th>Indicator</th><th>Mean IC</th><th>Mean TH</th><th>Mean G</th><th>% rose</th></tr>"+
+    IND.map(X=>{ const ic=mean(el.map(r=>val(r.prof.IC,X))), th=mean(el.map(r=>val(r.prof.TH,X))), up=el.filter(r=>r["G_"+X]>0).length/el.length;
+      const d = X==="LD"? f3 : f2;
+      return `<tr><td title="${IND_NAME[X]}"><b>${X}</b> <span class="muted">${IND_NAME[X]}</span></td><td class="n">${d(ic)}</td><td class="n">${d(th)}</td><td class="n"><b>${(th-ic>=0?"+":"")+d(th-ic)}</b></td><td class="n">${Math.round(up*100)}%</td></tr>`;}).join("")+
+    `</table><p class="muted">AVD, LCD, LBD per ${S.perN.toLocaleString()} words. LD = MATTR (0–1). Supplementary: mean change in raw TTR = ${f3(mean(el.map(r=>r.G_TTR)))} (TTR falls as texts get longer).</p>`;
+  // drivers
+  const dc=IND.map(X=>[X, el.filter(r=>r.driver===X).length]);
+  const flagged=el.filter(r=>r.band!=="Typical");
+  const max=Math.max(...dc.map(d=>d[1]),1);
+  $("drivers").innerHTML = dc.map(([X,n])=>`<div style="display:flex;align-items:center;gap:8px;margin:6px 0"><b style="width:40px">${X}</b><div style="background:var(--typ);height:18px;width:${n/max*70}%;border-radius:3px"></div><span>${n}</span></div>`).join("")
+    + `<h3>Flagged students</h3>` + (flagged.length? flagged.sort((a,b)=>b.WSIz-a.WSIz).map(r=>`<div style="margin:4px 0"><a href="#" data-stu="${r.id}">${r.id}</a> <span class="badge b-${r.band}">${r.band}</span> WSI_z ${f2(r.WSIz)} · driver ${r.driver}</div>`).join("") : "<span class='muted'>None at the current thresholds.</span>");
+  // heatmap
+  const col=z=>{ const a=Math.min(Math.abs(z)/2.5,1); return z>=0? `rgba(217,83,79,${a*0.85})` : `rgba(47,85,151,${a*0.75})`; };
+  const sorted=[...el].sort((a,b)=>b.WSIz-a.WSIz);
+  $("heat").innerHTML="<tr><th>#</th><th>Student</th>"+IND.map(X=>`<th title="${IND_NAME[X]}">z_${X}</th>`).join("")+"<th>WSI</th><th>WSI_z</th><th>Band</th><th>Driver</th><th>WSI (robust)</th></tr>"+
+    sorted.map(r=>`<tr class="click" data-stu="${r.id}"><td>${r.rank}</td><td><button type="button" class="linkbtn" data-stu="${r.id}"><b>${r.id}</b></button></td>`+IND.map(X=>`<td class="z" style="background:${col(r["z_"+X])};color:${Math.abs(r["z_"+X])>1.6?'#fff':'#222'}">${f2(r["z_"+X])}</td>`).join("")+
+      `<td class="n">${f2(r.WSI)}</td><td class="n"><b>${f2(r.WSIz)}</b></td><td><span class="badge b-${r.band}">${r.band}</span></td><td>${r.driver}</td><td class="n">${f2(r.WSIr)}</td></tr>`).join("");
+  document.querySelectorAll("[data-stu]").forEach(e=>e.onclick=ev=>{ev.preventDefault(); openStudent(e.dataset.stu);});
+}
+function barChart(){
+  const el=[...results.el].sort((a,b)=>b.WSIz-a.WSIz);
+  const W=Math.max(700, el.length*38+80), H=300, pl=50, pr=20, pt=16, pb=40;
+  const vals=el.map(r=>r.WSIz), lo=Math.min(-2.5,Math.floor(Math.min(...vals))), hi=Math.max(2.5,Math.ceil(Math.max(...vals)));
+  const y=v=>pt+(hi-v)/(hi-lo)*(H-pt-pb), bw=(W-pl-pr)/el.length;
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px">`;
+  for(let v=Math.ceil(lo);v<=hi;v++) s+=`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" stroke="${v===0?'#888':'#eee'}"/><text x="${pl-6}" y="${y(v)+4}" font-size="11" text-anchor="end" fill="#666">${v}</text>`;
+  [[S.notable,"#B8860B","Notable"],[S.exceptional,"#D9534F","Exceptional"]].forEach(([v,c,l])=>{ s+=`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" stroke="${c}" stroke-dasharray="6 4"/><text x="${W-pr}" y="${y(v)-4}" font-size="11" text-anchor="end" fill="${c}">${l} ≥ ${v}</text>`; });
+  el.forEach((r,i)=>{ const x=pl+i*bw+bw*.15, w=bw*.7, v=r.WSIz, c=r.band==="Exceptional"?"var(--exc)":r.band==="Notable"?"var(--notable)":"var(--typ)";
+    s+=`<g class="bar" style="cursor:pointer" tabindex="0" role="button" aria-label="${h(r.id)}, WSI z ${f2(v)}, ${r.band} band, driver ${r.driver}. Open student profile" data-stu="${r.id}"><title>${r.id}: WSI_z ${f2(v)} (${r.band}) · driver ${r.driver}</title><rect x="${x}" y="${Math.min(y(v),y(0))}" width="${w}" height="${Math.abs(y(v)-y(0))}" fill="${c}" rx="2"/>
+      <text x="${x+w/2}" y="${H-pb+16}" font-size="11" text-anchor="middle">${r.id}</text></g>`; });
+  s+=`<text x="14" y="${H/2}" font-size="11" fill="#666" transform="rotate(-90 14 ${H/2})" text-anchor="middle">WSI_z</text></svg>`;
+  $("barChart").innerHTML=s;
+  $("barChart").querySelectorAll("g.bar").forEach(g=>g.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); openStudent(g.dataset.stu); } }));
+}
+
+/* ---------- student ---------- */
+let cur=null;
+function renderStudentSel(){
+  const ids=results.rows.map(r=>r.id);
+  $("stuSel").innerHTML=ids.map(id=>{const r=results.rows.find(x=>x.id===id); return `<option value="${id}">${id}${r.eligible?" · "+r.band:" · excluded"}</option>`;}).join("");
+  if(!cur||!ids.includes(cur)) cur=[...results.el].sort((a,b)=>b.WSIz-a.WSIz)[0].id;
+  $("stuSel").value=cur;
+}
+$("stuSel").onchange=()=>{cur=$("stuSel").value; renderStudent();};
+$("prev").onclick=()=>step(-1); $("next").onclick=()=>step(1);
+function step(d){const ids=results.rows.map(r=>r.id); let i=ids.indexOf(cur)+d; if(i<0)i=ids.length-1; if(i>=ids.length)i=0; cur=ids[i]; $("stuSel").value=cur; renderStudent();}
+function openStudent(id){cur=id; $("stuSel").value=id; renderStudent(); tab("student");}
+function highlight(p){
+  if(!p) return "<span class='muted'>No text.</span>";
+  let h="", pos=0; const t=p.text, e=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;");
+  p.toks.forEach((tk,i)=>{ h+=e(t.slice(pos,tk.s)); const m=p.mark[i]; let w=e(t.slice(tk.s,tk.e));
+    if(m.a) w=`<span class="m-a">${w}</span>`;
+    const cls=[m.c?"m-c":"", m.b?"m-b":""].filter(Boolean);
+    if(cls.length) w=`<span class="${cls[0]}" ${cls.length>1?'style="box-shadow:inset 0 -4px 0 #9fd3b4"':''}>${w}</span>`;
+    h+=w; pos=tk.e; });
+  return h+e(t.slice(pos));
+}
+function describe(r){
+  if(!r.eligible) return `${r.id} was not scored: ${r.note}.`;
+  const n=results.el.length, s=[];
+  s.push(`<b>${r.id}</b> ranks <b>${r.rank} of ${n}</b> for overall shift (WSI_z = ${f2(r.WSIz)}, band <b>${r.band}</b>). `+
+    (r.band==="Typical"? "Their change between in-class and take-home writing is within the usual range for this cohort." :
+     "Their take-home writing differs from their in-class writing more than most of the cohort – a prompt to talk with the student about how the take-home piece was produced and what helped them."));
+  const big=IND.filter(X=>r["z_"+X]>=1), low=IND.filter(X=>r["z_"+X]<=-1);
+  const phr={AVD:"academic vocabulary",LD:"vocabulary variety",LCD:"use of logical connectors",LBD:"use of fixed academic phrases (bundles)"};
+  if(big.length) s.push(`Larger-than-usual increase in ${big.map(X=>`${phr[X]} (${X}, z = ${f2(r["z_"+X])})`).join(", ")}.`);
+  if(low.length) s.push(`Smaller-than-usual change or a fall in ${low.map(X=>`${phr[X]} (${X}, z = ${f2(r["z_"+X])})`).join(", ")}.`);
+  if(r["z_LD"]<0 && (r["z_LCD"]>=1||r["z_LBD"]>=1||r["z_AVD"]>=1)) s.push("Pattern: the writing became more formal and formulaic without becoming more varied – a shift in <i>style</i> rather than in vocabulary range.");
+  if(Math.abs(r.WSIz - (r.WSIr - mean(results.el.map(x=>x.WSIr)))/ (sd(results.el.map(x=>x.WSIr))||1))>1) s.push("<span class='muted'>The robust and standard versions differ noticeably for this student; treat the result with extra caution.</span>");
+  s.push("<span class='muted'>Check the highlighted texts below: does the change reflect genuine development (e.g. drafting, feedback, more time) or something else?</span>");
+  return s.join(" ");
+}
+function renderStudent(){
+  const r=results.rows.find(x=>x.id===cur); if(!r) return;
+  $("stuBadge").innerHTML = r.eligible? `<span class="badge b-${r.band}">${r.band}</span> &nbsp;WSI_z <b>${f2(r.WSIz)}</b> · rank ${r.rank}/${results.el.length} · main driver <b>${r.driver}</b>` : `<span class="badge b-Excluded">Excluded</span> ${r.note}`;
+  const P=r.prof, d=X=>X==="LD"?f3:f2;
+  const rowsH=[["Words",p=>p.words,null,0],["Academic tokens",p=>p.acad,null,0],["Connectors",p=>p.conn,null,0],["Bundles",p=>p.bund,null,0],["TTR (supplementary)",p=>p.ttr,"G_TTR",3]];
+  let t="<tr><th>Measure</th><th>IC</th><th>TH</th><th>Shift G</th><th>z</th></tr>";
+  IND.forEach(X=>{ t+=`<tr><td><b>${X}</b> <span class="muted">${IND_NAME[X]}</span></td><td class="n">${P.IC?d(X)(val(P.IC,X)):"–"}</td><td class="n">${P.TH?d(X)(val(P.TH,X)):"–"}</td><td class="n"><b>${r.eligible?((r["G_"+X]>=0?"+":"")+d(X)(r["G_"+X])):"–"}</b></td><td class="n">${r.eligible?f2(r["z_"+X]):"–"}</td></tr>`; });
+  rowsH.forEach(([l,fn,g,dp])=>{ t+=`<tr><td class="muted">${l}</td><td class="n muted">${P.IC?(dp?fn(P.IC).toFixed(dp):fn(P.IC)):"–"}</td><td class="n muted">${P.TH?(dp?fn(P.TH).toFixed(dp):fn(P.TH)):"–"}</td><td class="n muted">${g&&r.eligible?f3(r[g]):""}</td><td></td></tr>`; });
+  $("stuTbl").innerHTML=t;
+  $("interp").innerHTML=describe(r);
+  // z chart
+  if(r.eligible){
+    const W=360,H=230,pl=48,cx=v=>W/2+v/3*(W/2-20), bh=34;
+    let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:480px">`;
+    [-3,-2,-1,0,1,2,3].forEach(v=>s+=`<line x1="${cx(v)}" x2="${cx(v)}" y1="10" y2="${H-24}" stroke="${v?'#eee':'#888'}"/><text x="${cx(v)}" y="${H-8}" font-size="10" text-anchor="middle" fill="#666">${v}</text>`);
+    IND.forEach((X,i)=>{ const v=Math.max(-3,Math.min(3,r["z_"+X])), y=18+i*(bh+12);
+      s+=`<rect x="${Math.min(cx(0),cx(v))}" y="${y}" width="${Math.abs(cx(v)-cx(0))}" height="${bh}" fill="${v>=0?'#D9534F':'#2F5597'}" opacity=".8" rx="2"/>
+          <text x="6" y="${y+bh/2+4}" font-size="12" font-weight="600">${X}</text><text x="${v>=0?cx(v)+4:cx(v)-4}" y="${y+bh/2+4}" font-size="11" text-anchor="${v>=0?'start':'end'}">${f2(r["z_"+X])}</text>`; });
+    s+="</svg><p class='muted'>Bars show how this student's shift on each indicator compares with the cohort (0 = cohort average shift).</p>";
+    $("stuChart").innerHTML=s;
+  } else $("stuChart").innerHTML="<p class='muted'>Not scored.</p>";
+  $("icHead").textContent=`In-class (IC) · ${P.IC?P.IC.words:0} words`;
+  $("thHead").textContent=`Take-home (TH) · ${P.TH?P.TH.words:0} words`;
+  $("icText").innerHTML=highlight(P.IC); $("thText").innerHTML=highlight(P.TH);
+}
+
+/* ---------- settings ---------- */
+const SET_DEF=[["perN","Per N words (normalisation)","A5",0],["wAVD","Weight AVD","A7",1],["wLD","Weight LD","A7",1],["wLCD","Weight LCD","A7",1],["wLBD","Weight LBD","A7",1],
+               ["notable","Notable threshold (WSI_z)","A9",1],["exceptional","Exceptional threshold (WSI_z)","A9",1],["mattrWin","MATTR window (words)","A3",0],["minWords","Minimum words per text","A5",0]];
+function setWarn(inp,msg){
+  let w=inp.parentElement.querySelector(".warn");
+  if(!msg){ if(w) w.remove(); inp.removeAttribute("aria-invalid"); return; }
+  inp.setAttribute("aria-invalid","true");
+  if(!w){ w=document.createElement("div"); w.className="warn"; w.style.fontSize="12px"; w.style.marginTop="2px"; inp.parentElement.appendChild(w); }
+  w.textContent=msg;
+}
+function settingError(k,v){
+  if(k.startsWith("w")) return v>=0?"":"Weight must be 0 or more";
+  if(k==="perN") return v>0?"":"Must be greater than 0";
+  if(k==="mattrWin") return (Number.isInteger(v)&&v>=10)?"":"Whole number, 10 or more";
+  if(k==="minWords") return (Number.isInteger(v)&&v>=20)?"":"Whole number, 20 or more";
+  if(k==="notable") return v>0?"":"Must be greater than 0";
+  if(k==="exceptional") return v>S.notable?"":"Must be greater than the Notable threshold";
+  return "";
+}
+function renderSettings(){
+  $("setTbl").innerHTML="<tr><th>Setting</th><th>Value</th><th>Assumption</th><th></th></tr>"+SET_DEF.map(([k,l,a,live])=>
+    `<tr><td>${l}</td><td><input type="number" step="any" data-set="${k}" value="${S[k]}"></td><td>${a}</td><td class="muted">${live?"instant":"needs Recalculate"}</td></tr>`).join("");
+  document.querySelectorAll("[data-set]").forEach(inp=>inp.onchange=()=>{
+    const k=inp.dataset.set, v=parseFloat(inp.value);
+    if(isNaN(v)){ setWarn(inp,"Enter a number"); return; }
+    const msg=settingError(k,v);
+    if(msg){ setWarn(inp,msg); return; }
+    if(k.startsWith("w")){
+      const X=k.slice(1), sum=IND.reduce((a,Y)=>a+(Y===X?v:S["w"+Y]),0);
+      if(!(sum>0)){ setWarn(inp,"At least one weight must be above 0"); return; }
+    }
+    setWarn(inp,"");
+    S[k]=v;
+    if(k==="notable"){ const ex=document.querySelector('[data-set="exceptional"]'); if(ex) setWarn(ex, settingError("exceptional",parseFloat(ex.value))); }
+    const live=SET_DEF.find(d=>d[0]===k)[3]; if(live&&results){ rescore(); renderAll(); toast("Results updated"); }
+  });
+  $("listTbl").innerHTML="<tr><th>List</th><th>Source in use</th><th>Items</th></tr>"+
+    [["academic","Academic vocabulary (A1)"],["connectors","Connectors (A2)"],["bundles","Lexical bundles (A4)"]].map(([k,l])=>{ prepareLists(); const n=k==="academic"?LISTS.academic.size:k==="bundles"?LISTS.bundles.size:LISTS.connectors.length;
+      return `<tr><td>${l}</td><td>${listSrc[k]}</td><td class="n">${n}</td></tr>`;}).join("");
+  $("assTbl").innerHTML="<tr><th>#</th><th>Decision</th><th>Assumption adopted</th><th>Rationale</th><th>Tested in validation?</th></tr>"+ASSUMPTIONS.map(a=>`<tr>${a.map(c=>`<td>${c}</td>`).join("")}</tr>`).join("");
+}
+$("recalc").onclick=()=>{ if(!Object.keys(essays).length){toast("Load essays first"); return;} if(process()){ document.querySelectorAll("nav button").forEach(b=>b.disabled=false); renderAll(); toast("Recalculated"); } };
+$("resetSet").onclick=()=>{ S=Object.assign({},DEFAULTS); rawLists={academic:DEFAULT_LISTS.academic, bundles:DEFAULT_LISTS.bundles, connectors:DEFAULT_LISTS.connectors};
+  listSrc={academic:DEFAULT_LISTS.academic_source, bundles:DEFAULT_LISTS.bundle_source, connectors:"Bundled list (68 connectors, 4 groups)"}; renderSettings(); if(results && process()) renderAll(); toast("Defaults restored"); };
+let pendingList=null;
+document.querySelectorAll("[data-list]").forEach(b=>b.onclick=()=>{pendingList=b.dataset.list; $("listFile").click();});
+$("listFile").onchange=async e=>{ const f=e.target.files[0]; if(!f) return; rawLists[pendingList]=await f.text(); listSrc[pendingList]="Uploaded: "+f.name;
+  renderSettings(); if(results && process()) renderAll(); toast("List replaced"+(results?" and results recalculated":"")); e.target.value=""; };
+
+/* ---------- export ---------- */
+function download(name, text, type="text/csv"){ const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob(["\ufeff"+text],{type})); a.download=name; a.click(); }
+const csvq=v=> typeof v==="string" && /[",\n]/.test(v)? `"${v.replace(/"/g,'""')}"` : v;
+$("csv").onclick=()=>{ const h=["Student",...IND.flatMap(X=>[X+"_IC",X+"_TH"]),...IND.map(X=>"G_"+X),"G_TTR",...IND.map(X=>"z_"+X),"WSI","WSI_z","Band","Main_driver",...IND.map(X=>"rz_"+X),"WSI_robust"];
+  const L=results.el.map(r=>[r.id,...IND.flatMap(X=>[val(r.prof.IC,X),val(r.prof.TH,X)]),...IND.map(X=>r["G_"+X]),r.G_TTR,...IND.map(X=>r["z_"+X]),r.WSI,r.WSIz,r.band,r.driver,...IND.map(X=>r["rz_"+X]),r.WSIr]
+    .map(v=>typeof v==="number"?+v.toFixed(4):csvq(v)).join(","));
+  download("WSI_results.csv",[h.join(","),...L].join("\n")); };
+$("csvRaw").onclick=()=>{ const h=["Student","Cond","Words","Academic_tokens","Connectors","Bundles","TTR","MATTR","Eligible","Note","Top_academic","Top_connectors","Top_bundles"];
+  const L=[]; results.rows.forEach(r=>["IC","TH"].forEach(c=>{const p=r.prof[c]; if(!p) return;
+    L.push([r.id,c,p.words,p.acad,p.conn,p.bund,+p.ttr.toFixed(4),+p.mattr.toFixed(4),r.eligible?"Yes":"No",csvq(r.note),
+      csvq(topN(p.aItems).map(([w,n])=>`${w} (${n})`).join("; ")),csvq(topN(p.cItems).map(([w,n])=>`${w} (${n})`).join("; ")),csvq(topN(p.bItems).map(([w,n])=>`${w} (${n})`).join("; "))].join(","));}));
+  download("WSI_raw_counts.csv",[h.join(","),...L].join("\n")); };
+
+renderSettings(); renderLoaded();
+</script>
+</body>
+</html>
